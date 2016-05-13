@@ -104,9 +104,9 @@ public class AM002SearchActivity extends Activity implements OnClickListener,
 							int id = (Integer) hotData.get(position).get("id");
 							String nameString = hotData.get(position)
 									.get("name").toString();
-							Toast.makeText(AM002SearchActivity.this,
-									nameString + "  ID:" + id,
-									Toast.LENGTH_SHORT).show();
+//							Toast.makeText(AM002SearchActivity.this,
+//									nameString + "  ID:" + id,
+//									Toast.LENGTH_SHORT).show();
 							String text = id+"";
 														
 							Intent i = new Intent(AM002SearchActivity.this,AM006SpotActivity.class);

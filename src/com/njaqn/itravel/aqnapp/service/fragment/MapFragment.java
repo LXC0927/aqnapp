@@ -50,24 +50,35 @@ import com.baidu.mapapi.search.poi.PoiResult;
 import com.baidu.mapapi.search.poi.PoiSearch;
 import com.baidu.mapapi.search.poi.PoiSortType;
 import com.baidu.mapapi.utils.DistanceUtil;
+import com.baoyz.swipemenulistview.SwipeMenu;
+import com.baoyz.swipemenulistview.SwipeMenuCreator;
+import com.baoyz.swipemenulistview.SwipeMenuItem;
+import com.baoyz.swipemenulistview.SwipeMenuListView;
+import com.baoyz.swipemenulistview.SwipeMenuListView.OnMenuItemClickListener;
 import com.njaqn.itravel.aqnapp.AppInfo;
 import com.njaqn.itravel.aqnapp.R;
 import com.njaqn.itravel.aqnapp.am.AM001HomePageActivity;
+import com.njaqn.itravel.aqnapp.am.AM002SearchActivity;
+import com.njaqn.itravel.aqnapp.am.AM006SpotActivity;
 import com.njaqn.itravel.aqnapp.listener.MyOrientationListener;
 import com.njaqn.itravel.aqnapp.listener.MyOrientationListener.OnOrientationListener;
 import com.njaqn.itravel.aqnapp.service.AmService;
 import com.njaqn.itravel.aqnapp.service.AmServiceImpl;
 import com.njaqn.itravel.aqnapp.service.MapService;
 import com.njaqn.itravel.aqnapp.service.MapServiceImpl;
+import com.njaqn.itravel.aqnapp.service.adapter.MySwipListAdapter;
 import com.njaqn.itravel.aqnapp.service.bean.JSpotBean;
 import com.njaqn.itravel.aqnapp.service.bean.JingDianBean;
+import com.njaqn.itravel.aqnapp.service.bean.MapResultBean;
 import com.njaqn.itravel.aqnapp.util.MapUtil;
 import com.njaqn.itravel.aqnapp.util.MapUtil.JingDianListener;
 import com.njaqn.itravel.aqnapp.util.VoiceUtil;
 
 import android.app.Fragment;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Point;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -109,19 +120,28 @@ public class MapFragment extends Fragment implements
 	private LinearLayout layout;
 	private RelativeLayout titleLayout;
 	private TextView resultTextView;
-	private ListView resultListView;
-	private ArrayAdapter<String> resultAdapter;
-	private List<String> resultList;
+	private String lastText;
+	private SwipeMenuListView resultListView;
+	private MySwipListAdapter resultAdapter;
+	private SwipeMenuCreator creator;
+	private List<MapResultBean> resultList;
+	private List<MapResultBean> spotList;
 	private int resultCount;
 	private List<PoiInfo> poiInfos;
 	private boolean isOpen = false;
+	private boolean isSwipeOpen = false;
+//	private boolean isRangeSpot = false;
 	private int facilityId;
 	private static final int TOILET = 1;
 	private static final int PARKING = 2;
 	private static final int CITY = 3;
+	private static final int SPOT = 4;
 	private int spotId = 0;
 	private AmService as;
 	private BDLocation myLocation;
+	private MapService mapService;
+	private ImageView resultBackImageView;
+	private List<JingDianBean> jingDians;
 
 	// map定位类
 	// private LocationClient locClient;
@@ -157,6 +177,7 @@ public class MapFragment extends Fragment implements
 		rootView = inflater.inflate(R.layout.am001_fragment_mapview, null);
 		mMapView = (MapView) rootView.findViewById(R.id.bmapView);
 		as = new AmServiceImpl();
+		mapService = new MapServiceImpl();
 		app = (AppInfo) getActivity().getApplication();
 		mBaiduMap = mMapView.getMap();
 		mUiSettings = mBaiduMap.getUiSettings();
@@ -167,6 +188,34 @@ public class MapFragment extends Fragment implements
 		setCurLocation();
 
 		return rootView;
+	}
+
+	private void initSwipeMenuCreator() {
+		creator = new SwipeMenuCreator() {
+
+			@Override
+			public void create(SwipeMenu menu) {
+				SwipeMenuItem moreItem = new SwipeMenuItem(getActivity());
+				moreItem.setBackground(new ColorDrawable(Color.rgb(0xc9, 0xc9,
+						0xce)));
+				moreItem.setWidth(200);
+				moreItem.setTitle("详情");
+				moreItem.setTitleSize(18);
+				moreItem.setTitleColor(Color.WHITE);
+				menu.addMenuItem(moreItem);
+
+				SwipeMenuItem checkItem = new SwipeMenuItem(getActivity());
+				checkItem.setBackground(new ColorDrawable(Color.rgb(0x5f, 0xae,
+						0xe1)));
+				checkItem.setWidth(200);
+				checkItem.setTitle("查看景点");
+				checkItem.setTitleSize(18);
+				checkItem.setTitleColor(Color.WHITE);
+				menu.addMenuItem(checkItem);
+
+			}
+		};
+
 	}
 
 	public void initMapUtil() {
@@ -246,12 +295,17 @@ public class MapFragment extends Fragment implements
 				switch (msg.what) {
 				case 0:
 					if (resultList != null) {
-						resultAdapter = new ArrayAdapter<>(getActivity(),
-								android.R.layout.simple_list_item_1, resultList);
-						resultListView.setAdapter(null);
-						resultListView.setAdapter(resultAdapter);
-						resultListView
-								.setOnItemClickListener(new ResultItemClickListener());
+						// resultAdapter = new MySwipListAdapter(resultList,
+						// getActivity());
+						// resultListView.setAdapter(resultAdapter);
+						// resultListView.setMenuCreator(creator);
+						// resultListView
+						// .setOnItemClickListener(new
+						// ResultItemClickListener());
+						// resultListView
+						// .setOnMenuItemClickListener(new
+						// ResultMeauClickListener());
+						resultAdapter.notifyDataSetChanged();
 					}
 
 					break;
@@ -294,7 +348,6 @@ public class MapFragment extends Fragment implements
 					break;
 				case 2:
 					if (myLocation != null) {
-						MapService mapService = new MapServiceImpl();
 						JingDianBean jingDianBean = mapService
 								.getNearestJingDian(new LatLng(myLocation
 										.getLatitude(), myLocation
@@ -405,7 +458,6 @@ public class MapFragment extends Fragment implements
 	};
 
 	public void setSpotRange(BDLocation location) {
-
 		List<JSONObject> locationSpot = as.judgeLocation(
 				location.getLongitude(), location.getLatitude());
 		JSONObject currentSpot = locationSpot.get(0);
@@ -457,7 +509,7 @@ public class MapFragment extends Fragment implements
 
 	public void setJingDianPointer(int id) {
 		mBaiduMap.clear();
-		List<JingDianBean> jingDians = as.getAllJingDianBySpotId(id);
+		jingDians = as.getAllJingDianBySpotId(id);
 		if (jingDians != null) {
 			for (JingDianBean i : jingDians) {
 				LatLng latlng = new LatLng(i.getLatitude(), i.getLongitude());
@@ -580,6 +632,9 @@ public class MapFragment extends Fragment implements
 	}
 
 	public String setResultTitle(int switchId) {
+		if (resultBackImageView != null){
+			resultBackImageView.setVisibility(View.INVISIBLE);
+		}
 		if (resultTextView == null) {
 			resultTextView = new TextView(getActivity());
 			resultTextView.setTextSize(18.0f);
@@ -607,8 +662,7 @@ public class MapFragment extends Fragment implements
 		case CITY:
 			activity = (AM001HomePageActivity) getActivity();
 			int cityId = activity.getApp().getCityId();
-			MapService ms = new MapServiceImpl();
-			resultCount = ms.getSpotCountInCity(cityId);
+			resultCount = mapService.getSpotCountInCity(cityId);
 			result = "该城市中有" + resultCount + "个景区";
 			break;
 		case TOILET:
@@ -775,17 +829,16 @@ public class MapFragment extends Fragment implements
 			String resultString = "找到最近的" + resultCount + "个结果";
 			resultTextView.setText(resultString);
 			if (resultList == null) {
-				resultList = new ArrayList<>();
+				resultList = new ArrayList<>();// 可能没有必要
 			} else {
 				resultList.clear();
 			}
 			for (int i = 0; i < resultCount; i++) {
 				String string = poiInfos.get(i).name + ":"
 						+ poiInfos.get(i).address;
-				resultList.add(string);
+				resultList.add(new MapResultBean(0, string));
 			}
-			resultAdapter = new ArrayAdapter<>(getActivity(),
-					android.R.layout.simple_list_item_1, resultList);
+			// resultAdapter = new MySwipListAdapter(resultList, getActivity());
 			return;
 		}
 		if (result.error == SearchResult.ERRORNO.AMBIGUOUS_KEYWORD) {
@@ -822,17 +875,27 @@ public class MapFragment extends Fragment implements
 		mBaiduMap.setPadding(0, 0, 0, 550);
 		mMapView.removeView(layout);
 		if (resultListView == null) {
-			resultListView = new ListView(getActivity());
+			resultListView = new SwipeMenuListView(getActivity());
 			resultListView.setBackgroundColor(Color.WHITE);
+		}
+		if (creator == null) {
+			initSwipeMenuCreator();
+		}
+		if (resultList == null) {
+			resultList = new ArrayList<>();
+			spotList = new ArrayList<>();
+		}
+		if (resultAdapter == null) {
+			resultAdapter = new MySwipListAdapter(resultList, getActivity());
 		}
 		if (resultListView.getParent() == null) {
 			layout.addView(resultListView, mMapView.getWidth(), 550 - 100);
-			if (resultAdapter != null) {
-				resultListView.setAdapter(null);
-				resultListView.setAdapter(resultAdapter);
-				resultListView
-						.setOnItemClickListener(new ResultItemClickListener());
-			}
+			resultListView.setAdapter(resultAdapter);
+			resultListView.setMenuCreator(creator);
+			resultListView
+					.setOnItemClickListener(new ResultItemClickListener());
+			resultListView
+					.setOnMenuItemClickListener(new ResultMeauClickListener());
 		}
 		if (facilityId == 3) {
 			new MyResultThread().run();
@@ -868,8 +931,17 @@ public class MapFragment extends Fragment implements
 	private class MyResultThread extends Thread {
 		@Override
 		public void run() {
-			MapService ms = new MapServiceImpl();
-			resultList = ms.getSpotInCity(activity.getApp().getCityId(), 1);
+			List<String> list = new MapServiceImpl().getSpotInCity(activity
+					.getApp().getCityId(), 1);
+			if (resultList == null) {
+				resultList = new ArrayList<>();// 可能没有必要
+			} else {
+				resultList.clear();
+			}
+			for (int i = 0; i < list.size(); i++) {
+				resultList.add(new MapResultBean(1, list.get(i)));
+				spotList.add(new MapResultBean(1, list.get(i)));
+			}
 			handler.sendEmptyMessage(0);
 			super.run();
 		}
@@ -882,11 +954,27 @@ public class MapFragment extends Fragment implements
 				long id) {
 			if (facilityId == 3) {
 				mBaiduMap.clear();
-				String name = (String) resultListView
-						.getItemAtPosition(position);
-				int spotId = new MapServiceImpl().getSpotIdByName(name);
+				String name = ((MapResultBean) resultListView
+						.getItemAtPosition(position)).getName();
+				int spotId = mapService.getSpotIdByName(name);
 				setJingDianPointer(spotId);
 
+			} else if (facilityId == 4) {
+				if (facilityMarker != null) {
+					facilityMarker.remove();
+				}
+				JingDianBean jingDianBean = jingDians.get(position);
+				LatLng latLng = new LatLng(jingDianBean.getLatitude(),
+						jingDianBean.getLongitude());
+				MapStatusUpdate mapStatusUpdate = null;
+				mapStatusUpdate = MapStatusUpdateFactory.newLatLng(latLng);
+				mBaiduMap.animateMapStatus(mapStatusUpdate);
+				MarkerOptions options = new MarkerOptions()
+						.position(latLng)
+						.zIndex(10)
+						.icon(new BitmapDescriptorFactory()
+								.fromResource(R.drawable.am001_map_spot_selected));
+				facilityMarker = (Marker) mBaiduMap.addOverlay(options);
 			} else {
 				if (facilityMarker != null) {
 					facilityMarker.remove();
@@ -902,6 +990,85 @@ public class MapFragment extends Fragment implements
 			}
 
 		}
+
+	}
+
+	private class ResultMeauClickListener implements OnMenuItemClickListener {
+
+		@Override
+		public boolean onMenuItemClick(int position, SwipeMenu menu, int index) {
+			String name = resultList.get(position).getName();
+			int id = mapService.getSpotIdByName(name);
+			switch (index) {
+			case 0:
+				if (id != 0) {
+					Intent i = new Intent(getActivity(),
+							AM006SpotActivity.class);
+					i.putExtra("id", id + "");
+					i.putExtra("name", name);
+					startActivity(i);
+				}
+				break;
+			case 1:
+				if (id != 0) {
+					mBaiduMap.clear();
+					setJingDianPointer(id);
+					setJingDianResultListView(id, name);
+				}
+				break;
+			default:
+				break;
+			}
+			return false;
+		}
+
+	}
+
+	public void setJingDianResultListView(int id, String name) {
+		// TODO Auto-generated method stub
+		closeResult();
+		openResult();
+		if (resultBackImageView == null) {
+			resultBackImageView = new ImageView(getActivity());
+			resultBackImageView
+					.setBackgroundResource(R.drawable.map_result_back);
+			resultBackImageView.setOnClickListener(new OnClickListener() {
+
+				@Override
+				public void onClick(View v) {
+					resultBackImageView.setVisibility(View.INVISIBLE);
+					resultTextView.setText(lastText);
+					facilityId = 3;
+					resultList.clear();
+					for (int i = 0; i < spotList.size(); i++) {
+						resultList.add(spotList.get(i));
+					}
+					resultAdapter.notifyDataSetChanged();
+
+				}
+			});
+			RelativeLayout.LayoutParams imageLayoutParams = new RelativeLayout.LayoutParams(
+					70, 70);
+			imageLayoutParams.addRule(RelativeLayout.ALIGN_PARENT_LEFT,
+					RelativeLayout.TRUE);
+			imageLayoutParams.addRule(RelativeLayout.CENTER_VERTICAL,
+					RelativeLayout.TRUE);
+			titleLayout.addView(resultBackImageView, imageLayoutParams);
+		} else {
+			resultBackImageView.setVisibility(View.VISIBLE);
+		}
+		lastText = resultTextView.getText().toString();
+		resultTextView.setText(name);
+		resultList.clear();
+		if (jingDians != null) {
+			
+			for (JingDianBean i : jingDians) {
+				resultList.add(new MapResultBean(0, i.getName()));
+			}
+			
+			facilityId = 4;
+		}
+		resultAdapter.notifyDataSetChanged();
 
 	}
 

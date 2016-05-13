@@ -3,6 +3,7 @@ package com.njaqn.itravel.aqnapp.service;
 import java.util.List;
 
 import com.baidu.mapapi.model.LatLng;
+import com.njaqn.itravel.aqnapp.service.bean.JSpotBean;
 import com.njaqn.itravel.aqnapp.service.bean.JingDianBean;
 
 public interface MapService {

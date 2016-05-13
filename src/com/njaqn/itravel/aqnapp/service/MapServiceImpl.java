@@ -7,6 +7,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.baidu.mapapi.model.LatLng;
+import com.njaqn.itravel.aqnapp.service.bean.JSpotBean;
 import com.njaqn.itravel.aqnapp.service.bean.JingDianBean;
 import com.njaqn.itravel.aqnapp.util.AQNAppConst;
 import com.njaqn.itravel.aqnapp.util.UrlHttp;

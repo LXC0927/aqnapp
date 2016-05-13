@@ -57,7 +57,7 @@ public class MapUtil {
 		this.jingDianListener = jingDianListener;
 		Timer timer = new Timer();
 		jTask = new JingDianTask();
-		timer.scheduleAtFixedRate(jTask, 4000, 30 * 1000);
+		timer.scheduleAtFixedRate(jTask, 6000, 30 * 1000);
 	}
 
 	private class JingDianTask extends TimerTask {
