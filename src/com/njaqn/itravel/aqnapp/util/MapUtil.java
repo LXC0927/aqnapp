@@ -16,10 +16,12 @@ public class MapUtil {
 	public void setNearestOne(JingDianBean nearestOne) {
 		this.nearestOne = nearestOne;
 	}
+
 	private LatLng lastLatLng;
 	private LatLng latLng;
 	private double moveDistence = 20;
 	private Handler handler;
+	private static int delay = 4;// 景点播报延时
 
 	public MapUtil(Handler handler) {
 		this.handler = handler;
@@ -33,7 +35,7 @@ public class MapUtil {
 			LatLng jingDianLatLng = new LatLng(nearestOne.getLatitude(),
 					nearestOne.getLongitude());
 			double distance = DistanceUtil.getDistance(latLng, jingDianLatLng);
-			
+			System.out.println(distance);
 			if (distance < 400) {
 				jingDianListener.onApproachJingDian(nearestOne.getId(),
 						nearestOne.getName(), distance);
@@ -47,31 +49,34 @@ public class MapUtil {
 	}
 
 	private JingDianListener jingDianListener;
+
 	public JingDianTask getjTask() {
 		return jTask;
 	}
 
 	private JingDianTask jTask;
+
 	public void setJingDianListener(JingDianListener jingDianListener) {
 		System.out.println("设置listener");
 		this.jingDianListener = jingDianListener;
 		Timer timer = new Timer();
 		jTask = new JingDianTask();
-		timer.scheduleAtFixedRate(jTask, 6000, 30 * 1000);
+		timer.scheduleAtFixedRate(jTask, delay * 1000, 30 * 1000);
+		System.out.println("开始定时任务");
 	}
 
 	private class JingDianTask extends TimerTask {
 
 		@Override
 		public void run() {
-			if (latLng != null&&moveDistence > 10 ) {
+			if (latLng != null && moveDistence > 10) {
 				lastLatLng = latLng;
 				handler.sendEmptyMessage(2);
 			}
 		}
 
 	}
-	
+
 	public void destory() {
 		jTask.cancel();
 	}

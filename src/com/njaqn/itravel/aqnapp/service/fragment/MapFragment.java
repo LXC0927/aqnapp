@@ -353,7 +353,7 @@ public class MapFragment extends Fragment implements
 										.getLatitude(), myLocation
 										.getLongitude()));
 						mapUtil.setNearestOne(jingDianBean);
-						System.out.println("获得数据一次");
+						System.out.println("获得数据一次 "+jingDianBean.getName());
 					}
 					break;
 				default:
