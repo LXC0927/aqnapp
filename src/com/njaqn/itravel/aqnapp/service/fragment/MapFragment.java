@@ -120,6 +120,7 @@ public class MapFragment extends Fragment implements
 	private LinearLayout layout;
 	private RelativeLayout titleLayout;
 	private TextView resultTextView;
+	private ImageView closeImageView;
 	private String lastText;
 	private SwipeMenuListView resultListView;
 	private MySwipListAdapter resultAdapter;
@@ -138,6 +139,7 @@ public class MapFragment extends Fragment implements
 	private static final int CITY = 3;
 	private static final int SPOT = 4;
 	private int spotId = 0;
+	private String spotName;
 	private AmService as;
 	private BDLocation myLocation;
 	private MapService mapService;
@@ -466,12 +468,18 @@ public class MapFragment extends Fragment implements
 
 			voiceUtil = ((AM001HomePageActivity) getActivity()).getVutil();
 			if (currentSpot.getInt("distance") < 1000) {
+				spotName = currentSpot.getString("name");
 				voiceUtil
-						.playAudio("您当前所在的景区是" + currentSpot.getString("name"));
+						.playAudio("您当前所在的景区是" + spotName);
 				isInspot = true;
 				spotId = currentSpot.getInt("ID");
 				setJingDianPointer(currentSpot.getInt("ID"));
+				addView(4);
+				setJingDianResultListView(spotId, spotName);
+				closeResult();
+				closeImageView.setVisibility(View.INVISIBLE);
 			} else {
+				spotName = "当前不在任何景区";
 				voiceUtil.playAudio("您当前不在任何景区");
 				for (JSONObject j : locationSpot) {
 					setSpotArea(j.getInt("ID"));
@@ -615,6 +623,7 @@ public class MapFragment extends Fragment implements
 		}
 		mBaiduMap.setPadding(0, 0, 0, 100);
 		String result = setResultTitle(switchId);
+		closeImageView.setVisibility(View.VISIBLE);
 		if (layout == null) {
 			layout = new LinearLayout(getActivity());
 			layout.setOrientation(LinearLayout.VERTICAL);
@@ -686,18 +695,22 @@ public class MapFragment extends Fragment implements
 			RelativeLayout.LayoutParams textLayoutParams = new RelativeLayout.LayoutParams(
 					mMapView.getWidth(), 100);
 			titleLayout.addView(resultTextView, textLayoutParams);
-			ImageView imageView = new ImageView(getActivity());
-			imageView.setBackgroundResource(R.drawable.map_result_close);
-			imageView.setOnClickListener(new OnClickListener() {
+			closeImageView = new ImageView(getActivity());
+//			closeImageView.setVisibility(View.VISIBLE);
+			closeImageView.setBackgroundResource(R.drawable.map_result_close);
+			closeImageView.setOnClickListener(new OnClickListener() {
 
 				@Override
-				public void onClick(View v) {
-					mBaiduMap.setPadding(0, 0, 0, 0);
-					mMapView.removeView(layout);
+				public void onClick(View v) {					
 					mBaiduMap.clear();
 					if (spotId != 0) {
 						setJingDianPointer(spotId);
+						closeImageView.setVisibility(View.INVISIBLE);
+						setJingDianResultListView(spotId, spotName);
+						closeResult();						
 					} else {
+						mBaiduMap.setPadding(0, 0, 0, 0);
+						mMapView.removeView(layout);
 						List<JSONObject> locationSpot = as.judgeLocation(
 								myLocation.getLongitude(),
 								myLocation.getLatitude());
@@ -711,7 +724,7 @@ public class MapFragment extends Fragment implements
 					RelativeLayout.TRUE);
 			imageLayoutParams.addRule(RelativeLayout.CENTER_VERTICAL,
 					RelativeLayout.TRUE);
-			titleLayout.addView(imageView, imageLayoutParams);
+			titleLayout.addView(closeImageView, imageLayoutParams);
 
 		}
 		return result;
@@ -860,7 +873,7 @@ public class MapFragment extends Fragment implements
 	}
 
 	public void closeResult() {
-		isOpen = !isOpen;
+		isOpen = false;
 		mBaiduMap.setPadding(0, 0, 0, 100);
 		mMapView.removeView(layout);
 		layout.removeView(resultListView);
@@ -875,7 +888,7 @@ public class MapFragment extends Fragment implements
 	}
 
 	public void openResult() {
-		isOpen = !isOpen;
+		isOpen = true;
 		mBaiduMap.setPadding(0, 0, 0, 550);
 		mMapView.removeView(layout);
 		if (resultListView == null) {
@@ -1069,7 +1082,7 @@ public class MapFragment extends Fragment implements
 		resultTextView.setText(name);
 		resultList.clear();
 		if (jingDians != null) {
-			
+			resultCount = jingDians.size();
 			for (JingDianBean i : jingDians) {
 				resultList.add(new MapResultBean(0, i.getName()));
 			}
