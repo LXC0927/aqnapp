@@ -130,6 +130,7 @@ public class MapFragment extends Fragment implements
 	private List<PoiInfo> poiInfos;
 	private boolean isOpen = false;
 	private boolean isSwipeOpen = false;
+	private boolean isFromIntro = true;
 //	private boolean isRangeSpot = false;
 	private int facilityId;
 	private static final int TOILET = 1;
@@ -606,6 +607,9 @@ public class MapFragment extends Fragment implements
 	 */
 	public void addView(int switchId) {
 		facilityId = switchId;
+		if (facilityId == 4) {
+			isFromIntro = true;
+		}
 		if (isOpen) {
 			closeResult();
 		}
@@ -1011,6 +1015,7 @@ public class MapFragment extends Fragment implements
 				break;
 			case 1:
 				if (id != 0) {
+					isFromIntro = false;
 					mBaiduMap.clear();
 					setJingDianPointer(id);
 					setJingDianResultListView(id, name);
@@ -1056,6 +1061,9 @@ public class MapFragment extends Fragment implements
 			titleLayout.addView(resultBackImageView, imageLayoutParams);
 		} else {
 			resultBackImageView.setVisibility(View.VISIBLE);
+		}
+		if (isFromIntro) {
+			resultBackImageView.setVisibility(View.INVISIBLE);
 		}
 		lastText = resultTextView.getText().toString();
 		resultTextView.setText(name);

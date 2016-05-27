@@ -17,28 +17,28 @@ import android.util.LruCache;
 public class ImageDownLoader {
 
 	/** 
-     * »º´æImageµÄÀà£¬µ±´æ´¢ImageµÄ´óĞ¡´óÓÚLruCacheÉè¶¨µÄÖµ£¬ÏµÍ³×Ô¶¯ÊÍ·ÅÄÚ´æ 
+     * ï¿½ï¿½ï¿½ï¿½Imageï¿½ï¿½ï¿½à£¬ï¿½ï¿½ï¿½æ´¢Imageï¿½Ä´ï¿½Ğ¡ï¿½ï¿½ï¿½ï¿½LruCacheï¿½è¶¨ï¿½ï¿½Öµï¿½ï¿½ÏµÍ³ï¿½Ô¶ï¿½ï¿½Í·ï¿½ï¿½Ú´ï¿½ 
      */  
     private LruCache<String, Bitmap> mMemoryCache;  
     /** 
-     * ²Ù×÷ÎÄ¼şÏà¹ØÀà¶ÔÏóµÄÒıÓÃ 
+     * ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ 
      */  
     private ImageFileUtil fileUtils;  
     /** 
-     * ÏÂÔØImageµÄÏß³Ì³Ø 
+     * ï¿½ï¿½ï¿½ï¿½Imageï¿½ï¿½ï¿½ß³Ì³ï¿½ 
      */  
     private ExecutorService mImageThreadPool = null;  
       
       
     public ImageDownLoader(Context context){  
-        //»ñÈ¡ÏµÍ³·ÖÅä¸øÃ¿¸öÓ¦ÓÃ³ÌĞòµÄ×î´óÄÚ´æ£¬Ã¿¸öÓ¦ÓÃÏµÍ³·ÖÅä32M  
+        //ï¿½ï¿½È¡ÏµÍ³ï¿½ï¿½ï¿½ï¿½ï¿½Ã¿ï¿½ï¿½Ó¦ï¿½Ã³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú´æ£¬Ã¿ï¿½ï¿½Ó¦ï¿½ï¿½ÏµÍ³ï¿½ï¿½ï¿½ï¿½32M  
         int maxMemory = (int) Runtime.getRuntime().maxMemory();    
         int mCacheSize = maxMemory / 4;  
         Log.i("CacheSize", mCacheSize+"");
-        //¸øLruCache·ÖÅä1/8 4M  
+        //ï¿½ï¿½LruCacheï¿½ï¿½ï¿½ï¿½1/8 4M  
         mMemoryCache = new LruCache<String, Bitmap>(mCacheSize){  
   
-            //±ØĞëÖØĞ´´Ë·½·¨£¬À´²âÁ¿BitmapµÄ´óĞ¡  
+            //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ğ´ï¿½Ë·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Bitmapï¿½Ä´ï¿½Ğ¡  
             @Override  
             protected int sizeOf(String key, Bitmap value) {  
                 return value.getRowBytes() * value.getHeight();  
@@ -51,14 +51,14 @@ public class ImageDownLoader {
       
       
     /** 
-     * »ñÈ¡Ïß³Ì³ØµÄ·½·¨£¬ÒòÎªÉæ¼°µ½²¢·¢µÄÎÊÌâ£¬ÎÒÃÇ¼ÓÉÏÍ¬²½Ëø 
+     * ï¿½ï¿½È¡ï¿½ß³Ì³ØµÄ·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½æ¼°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½â£¬ï¿½ï¿½ï¿½Ç¼ï¿½ï¿½ï¿½Í¬ï¿½ï¿½ï¿½ï¿½ 
      * @return 
      */  
     public ExecutorService getThreadPool(){  
         if(mImageThreadPool == null){  
             synchronized(ExecutorService.class){  
                 if(mImageThreadPool == null){  
-                    //ÎªÁËÏÂÔØÍ¼Æ¬¸ü¼ÓµÄÁ÷³©£¬ÎÒÃÇÓÃÁË3¸öÏß³ÌÀ´ÏÂÔØÍ¼Æ¬  
+                    //Îªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¼Æ¬ï¿½ï¿½Óµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½3ï¿½ï¿½ï¿½ß³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¼Æ¬  
                     mImageThreadPool = Executors.newFixedThreadPool(3);  
                 }  
             }  
@@ -69,7 +69,7 @@ public class ImageDownLoader {
     }  
       
     /** 
-     * Ìí¼ÓBitmapµ½ÄÚ´æ»º´æ 
+     * ï¿½ï¿½ï¿½Bitmapï¿½ï¿½ï¿½Ú´æ»ºï¿½ï¿½ 
      * @param key 
      * @param bitmap 
      */  
@@ -80,7 +80,7 @@ public class ImageDownLoader {
     }    
        
     /** 
-     * ´ÓÄÚ´æ»º´æÖĞ»ñÈ¡Ò»¸öBitmap 
+     * ï¿½ï¿½ï¿½Ú´æ»ºï¿½ï¿½ï¿½Ğ»ï¿½È¡Ò»ï¿½ï¿½Bitmap 
      * @param key 
      * @return 
      */  
@@ -89,16 +89,13 @@ public class ImageDownLoader {
     }   
       
     /** 
-     * ÏÈ´ÓÄÚ´æ»º´æÖĞ»ñÈ¡Bitmap,Èç¹ûÃ»ÓĞ¾Í´ÓSD¿¨»òÕßÊÖ»ú»º´æÖĞ»ñÈ¡£¬SD¿¨»òÕßÊÖ»ú»º´æ 
-     * Ã»ÓĞ¾ÍÈ¥ÏÂÔØ 
+     * ï¿½È´ï¿½ï¿½Ú´æ»ºï¿½ï¿½ï¿½Ğ»ï¿½È¡Bitmap,ï¿½ï¿½ï¿½Ã»ï¿½Ğ¾Í´ï¿½SDï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö»ï¿½ï¿½ï¿½Ğ»ï¿½È¡ï¿½ï¿½SDï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö»ï¿½ï¿½ 
+     * Ã»ï¿½Ğ¾ï¿½È¥ï¿½ï¿½ï¿½ï¿½ 
      * @param url 
      * @param listener 
      * @return 
      */  
-    public Bitmap downloadImage(final String url, final onImageLoaderListener listener){  
-        //Ìæ»»UrlÖĞ·Ç×ÖÄ¸ºÍ·ÇÊı×ÖµÄ×Ö·û£¬ÕâÀï±È½ÏÖØÒª£¬ÒòÎªÎÒÃÇÓÃUrl×÷ÎªÎÄ¼şÃû£¬±ÈÈçÎÒÃÇµÄUrl  
-        //ÊÇHttp://xiaanming/abc.jpg;ÓÃÕâ¸ö×÷ÎªÍ¼Æ¬Ãû³Æ£¬ÏµÍ³»áÈÏÎªxiaanmingÎªÒ»¸öÄ¿Â¼£¬  
-        //ÎÒÃÇÃ»ÓĞ´´½¨´ËÄ¿Â¼±£´æÎÄ¼ş¾Í»á±¨´í  
+    public Bitmap downloadImage(final String url, final onImageLoaderListener listener){   
         final String subUrl = url.replaceAll("[^\\w]", "");  
         Bitmap bitmap = showCacheBitmap(subUrl);  
         if(bitmap != null){  
@@ -123,13 +120,13 @@ public class ImageDownLoader {
                     handler.sendMessage(msg);  
                       
                     try {  
-                        //±£´æÔÚSD¿¨»òÕßÊÖ»úÄ¿Â¼  
+                        //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½SDï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö»ï¿½Ä¿Â¼  
                         fileUtils.savaBitmap(subUrl, bitmap);  
                     } catch (IOException e) {  
                         e.printStackTrace();  
                     }  
                       
-                    //½«Bitmap ¼ÓÈëÄÚ´æ»º´æ  
+                    //ï¿½ï¿½Bitmap ï¿½ï¿½ï¿½ï¿½ï¿½Ú´æ»ºï¿½ï¿½  
                     addBitmapToMemoryCache(subUrl, bitmap);  
                 }  
             });  
@@ -139,7 +136,7 @@ public class ImageDownLoader {
     }  
       
     /** 
-     * »ñÈ¡Bitmap, ÄÚ´æÖĞÃ»ÓĞ¾ÍÈ¥ÊÖ»ú»òÕßsd¿¨ÖĞ»ñÈ¡£¬ÕâÒ»²½ÔÚgetViewÖĞ»áµ÷ÓÃ£¬±È½Ï¹Ø¼üµÄÒ»²½ 
+     * ï¿½ï¿½È¡Bitmap, ï¿½Ú´ï¿½ï¿½ï¿½Ã»ï¿½Ğ¾ï¿½È¥ï¿½Ö»ï¿½ï¿½ï¿½ï¿½sdï¿½ï¿½ï¿½Ğ»ï¿½È¡ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½getViewï¿½Ğ»ï¿½ï¿½ï¿½Ã£ï¿½ï¿½È½Ï¹Ø¼ï¿½ï¿½Ò»ï¿½ï¿½ 
      * @param url 
      * @return 
      */  
@@ -147,10 +144,10 @@ public class ImageDownLoader {
         if(getBitmapFromMemCache(url) != null){  
             return getBitmapFromMemCache(url);  
         }else if(fileUtils.isFileExists(url) && fileUtils.getFileSize(url) != 0){  
-            //´ÓSD¿¨»ñÈ¡ÊÖ»úÀïÃæ»ñÈ¡Bitmap  
+            //ï¿½ï¿½SDï¿½ï¿½ï¿½ï¿½È¡ï¿½Ö»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡Bitmap  
             Bitmap bitmap = fileUtils.getBitmap(url);  
               
-            //½«Bitmap ¼ÓÈëÄÚ´æ»º´æ  
+            //ï¿½ï¿½Bitmap ï¿½ï¿½ï¿½ï¿½ï¿½Ú´æ»ºï¿½ï¿½  
             addBitmapToMemoryCache(url, bitmap);  
             return bitmap;  
         }  
@@ -160,7 +157,7 @@ public class ImageDownLoader {
       
       
     /** 
-     * ´ÓUrlÖĞ»ñÈ¡Bitmap 
+     * ï¿½ï¿½Urlï¿½Ğ»ï¿½È¡Bitmap 
      * @param url 
      * @return 
      */  
@@ -186,7 +183,7 @@ public class ImageDownLoader {
     }  
       
     /** 
-     * È¡ÏûÕıÔÚÏÂÔØµÄÈÎÎñ 
+     * È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Øµï¿½ï¿½ï¿½ï¿½ï¿½ 
      */  
     public synchronized void cancelTask() {  
         if(mImageThreadPool != null){  
@@ -197,7 +194,7 @@ public class ImageDownLoader {
       
       
     /** 
-     * Òì²½ÏÂÔØÍ¼Æ¬µÄ»Øµ÷½Ó¿Ú 
+     * ï¿½ì²½ï¿½ï¿½ï¿½ï¿½Í¼Æ¬ï¿½Ä»Øµï¿½ï¿½Ó¿ï¿½ 
      * @author len 
      * 
      */  

@@ -16,7 +16,14 @@ public class SharedPreferencesUtil {
 		this.fileName = fileName;
 		this.mode = mode;
 	}
+		
 
+	public void saveDate(String key, String value) {
+		SharedPreferences sp = context.getSharedPreferences(fileName, mode);
+		SharedPreferences.Editor editor = sp.edit();
+		editor.putString(key, value);
+		editor.commit();
+	}
 	public void saveData(List<String> keys, List<String> lst) {
 		SharedPreferences sp = context.getSharedPreferences(fileName, mode);
 		SharedPreferences.Editor editor = sp.edit();
@@ -41,5 +48,11 @@ public class SharedPreferencesUtil {
 			lst.add(data);
 		}
 		return lst;
+	}
+	
+	public String getData(String key) {
+		SharedPreferences sp = context.getSharedPreferences(fileName, mode);
+		String value = sp.getString(key, "");
+		return value;
 	}
 }

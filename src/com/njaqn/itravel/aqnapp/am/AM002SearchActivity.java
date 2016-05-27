@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -48,6 +49,8 @@ public class AM002SearchActivity extends Activity implements OnClickListener,
 
 	private AppInfo app;
 	private Handler handler;
+//	private Handler inputHandler;
+	private InputMethodManager imm;
 
 	private ListView lvResults;
 	private ListView lvTips;
@@ -78,7 +81,24 @@ public class AM002SearchActivity extends Activity implements OnClickListener,
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.am002_search);
-		handler = new Handler();
+		imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+		hotData = new ArrayList<>();
+		nearbyData = new ArrayList<>();
+		handler = new Handler() {
+			@Override
+			public void handleMessage(Message msg) {
+				switch (msg.what) {
+				case 0:
+					changedLayout.removeView(childView);
+					changedLayout.addView(initView, mLayoutParams);
+					childView = initView;
+					break;
+				default:
+					break;
+				}
+				super.handleMessage(msg);
+			}
+		};
 		initViews();
 		initData();
 
@@ -104,16 +124,14 @@ public class AM002SearchActivity extends Activity implements OnClickListener,
 							int id = (Integer) hotData.get(position).get("id");
 							String nameString = hotData.get(position)
 									.get("name").toString();
-//							Toast.makeText(AM002SearchActivity.this,
-//									nameString + "  ID:" + id,
-//									Toast.LENGTH_SHORT).show();
-							String text = id+"";
-														
-							Intent i = new Intent(AM002SearchActivity.this,AM006SpotActivity.class);
+							String text = id + "";
+
+							Intent i = new Intent(AM002SearchActivity.this,
+									AM006SpotActivity.class);
 							i.putExtra("id", text);
 							i.putExtra("name", nameString);
 							startActivity(i);
-							
+
 						}
 					});
 				}
@@ -133,9 +151,9 @@ public class AM002SearchActivity extends Activity implements OnClickListener,
 							Toast.makeText(AM002SearchActivity.this,
 									nameString + "  ID:" + id,
 									Toast.LENGTH_SHORT).show();
-							String text = id+"";
-							
-							Intent i = new Intent(AM002SearchActivity.this,AM006SpotActivity.class);
+							String text = id + "";
+							Intent i = new Intent(AM002SearchActivity.this,
+									AM006SpotActivity.class);
 							i.putExtra("id", text);
 							i.putExtra("name", nameString);
 							startActivity(i);
@@ -180,14 +198,20 @@ public class AM002SearchActivity extends Activity implements OnClickListener,
 	}
 
 	private void getAutoCompleteData(String search) {
+		List<String> dbData = new ArrayList<String>();
+		SearchService ss = new SearchServiceImpl();
 		if (autoCompleteData == null) {
 			autoCompleteData = new ArrayList<String>();
+			dbData = ss.searchInSpotsForComplete(search);
+			if (dbData != null) {
+				for (int i = 0; i < dbData.size(); i++) {
+					autoCompleteData.add(dbData.get(i));
+				}
+			}
 		} else {
 			// 根据text 获取auto data
 			autoCompleteData.clear();
 			// service....
-			List<String> dbData = new ArrayList<String>();
-			SearchService ss = new SearchServiceImpl();
 			dbData = ss.searchInSpotsForComplete(search);
 			if (dbData != null) {
 				for (int i = 0; i < dbData.size(); i++) {
@@ -264,14 +288,15 @@ public class AM002SearchActivity extends Activity implements OnClickListener,
 			@Override
 			public void onItemClick(AdapterView<?> adapterView, View view,
 					int position, long l) {
-//				Toast.makeText(AM002SearchActivity.this, position + "",
-//						Toast.LENGTH_SHORT).show();
+				// Toast.makeText(AM002SearchActivity.this, position + "",
+				// Toast.LENGTH_SHORT).show();
 				HashMap<String, Object> data = (HashMap<String, Object>) lvResults
 						.getItemAtPosition(position);
 				String text = data.get("id").toString();
 				String spotName = data.get("name").toString();
-				
-				Intent i = new Intent(AM002SearchActivity.this,AM006SpotActivity.class);
+
+				Intent i = new Intent(AM002SearchActivity.this,
+						AM006SpotActivity.class);
 				i.putExtra("id", text);
 				i.putExtra("name", spotName);
 				startActivity(i);
@@ -315,13 +340,14 @@ public class AM002SearchActivity extends Activity implements OnClickListener,
 				int before, int count) {
 			if (!"".equals(charSequence.toString())) {
 				ivDelete.setVisibility(View.VISIBLE);
+				// 更新autoComplete数据
+				onRefreshAutoComplete(charSequence + "");
 				if (autoCompleteAdapter != null
 						&& lvTips.getAdapter() != autoCompleteAdapter) {
 					lvTips.setAdapter(autoCompleteAdapter);
 					btnClear.setVisibility(View.GONE);
 				}
-				// 更新autoComplete数据
-				onRefreshAutoComplete(charSequence + "");
+
 			} else {
 				ivDelete.setVisibility(View.GONE);
 				if (historyAdapter != null) {
@@ -357,8 +383,7 @@ public class AM002SearchActivity extends Activity implements OnClickListener,
 			}
 		}
 		// 隐藏软键盘
-		InputMethodManager imm = (InputMethodManager) this
-				.getSystemService(Context.INPUT_METHOD_SERVICE);
+
 		imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
 	}
 
@@ -379,6 +404,26 @@ public class AM002SearchActivity extends Activity implements OnClickListener,
 					btnClear.setVisibility(View.GONE);
 				}
 			}
+			if (childView == historyView || childView == lvTips) {
+				new Thread() {
+					public void run() {
+
+						while (true) {
+							boolean isOpen=imm.isActive();
+							if (!isOpen) {
+								handler.sendEmptyMessage(0);
+								break;
+							}
+							try {
+								sleep(1000);
+							} catch (InterruptedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}
+					};
+				}.start();
+			}
 			break;
 		case R.id.search_iv_delete:
 			etInput.setText("");
@@ -394,8 +439,6 @@ public class AM002SearchActivity extends Activity implements OnClickListener,
 			}
 
 			ivDelete.setVisibility(View.GONE);
-			InputMethodManager imm = (InputMethodManager) this
-					.getSystemService(Context.INPUT_METHOD_SERVICE);
 			imm.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
 			break;
 		case R.id.search_btn_search:
@@ -429,10 +472,9 @@ public class AM002SearchActivity extends Activity implements OnClickListener,
 		}
 		if (resultData.size() > 0) {
 			Toast.makeText(this, "完成搜索", Toast.LENGTH_SHORT).show();
-		}else {
+		} else {
 			Toast.makeText(this, "没有找到相关景区", Toast.LENGTH_SHORT).show();
 		}
-		
 
 		handler.post(new Runnable() {
 

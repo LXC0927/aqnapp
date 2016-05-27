@@ -43,6 +43,8 @@ public class AM006SpotActivity extends Activity {
 	private RelativeLayout mRlAtlas;
 	private ImageView iv_gotospot;
 	private ImageButton mButton;
+	private String spotName;
+	private TextView headline;
 
 	ImageDownLoader mImageDownLoader;
 
@@ -60,7 +62,7 @@ public class AM006SpotActivity extends Activity {
 		String r = null;
 		try {
 			r = url.postRequestForSql(
-					"select intro,TitleImage from J_Spot where ID = " + id,
+					"select intro,TitleImage,headline from J_Spot where ID = " + id,
 					AQNAppConst.DB_ONE_MANY);
 			if (r.equals("Err")) {
 				Toast.makeText(AM006SpotActivity.this, "暂无网络",
@@ -69,6 +71,7 @@ public class AM006SpotActivity extends Activity {
 				JSONObject json = new JSONObject(r);
 				String imageurl = json.getString("TitleImage");
 				intro = json.getString("intro");
+				headline.setText(json.getString("headline"));
 				imageUrl = imageurl;
 			}
 			String t = url.postRequestForSql(
@@ -113,7 +116,7 @@ public class AM006SpotActivity extends Activity {
 	private void init() {
 		Intent i = this.getIntent();
 		id = i.getStringExtra("id");
-		String spotName = i.getStringExtra("name");
+		spotName = i.getStringExtra("name");
 		tv_spotIntro = (TextView) findViewById(R.id.tv_spotintro);
 		mSpotName = (TextView) findViewById(R.id.spot_name);
 		ib_playIntro = (ImageButton) findViewById(R.id.ib_playintro);
@@ -122,6 +125,7 @@ public class AM006SpotActivity extends Activity {
 		mAtlas = (ImageView) findViewById(R.id.im_atlas);
 		mRlAtlas = (RelativeLayout) findViewById(R.id.rl_atlas);
 		mButton = (ImageButton) findViewById(R.id.imageButtonBack);
+		headline = (TextView) findViewById(R.id.tv_spotintrotitle);
 
 		vUtil = new VoiceUtil(this);
 		mSpotName.setText(spotName);
@@ -138,6 +142,7 @@ public class AM006SpotActivity extends Activity {
 					Intent intent = new Intent(AM006SpotActivity.this,
 							AM007SpotIntroActivity.class);
 					intent.putExtra("id", id);
+					
 					startActivity(intent);
 				}
 
@@ -211,7 +216,9 @@ public class AM006SpotActivity extends Activity {
 						AM001HomePageActivity.class);
 				i.putExtra("id", id);
 				i.putExtra("type", "spot");
-				startActivityForResult(i, 10);
+				i.putExtra("spotName", spotName);
+				startActivity(i);
+//				startActivityForResult(i, 10);
 				finish();
 				break;
 

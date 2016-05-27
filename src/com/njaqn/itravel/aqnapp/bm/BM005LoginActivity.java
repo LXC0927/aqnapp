@@ -1,130 +1,271 @@
-/**
- * ×÷Õß£ºÑîÁø
- */
 package com.njaqn.itravel.aqnapp.bm;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+import org.json.JSONObject;
+
+import com.njaqn.itravel.aqnapp.AccessTokenKeeper;
+import com.njaqn.itravel.aqnapp.WeiboConstants;
 import com.njaqn.itravel.aqnapp.R;
-import com.njaqn.itravel.aqnapp.R.id;
-import com.njaqn.itravel.aqnapp.R.layout;
-import com.njaqn.itravel.aqnapp.R.menu;
-import com.njaqn.itravel.aqnapp.am.AM001HomePageActivity;
-import com.njaqn.itravel.aqnapp.service.BmService;
-import com.njaqn.itravel.aqnapp.service.BmServiceImpl;
+import com.njaqn.itravel.aqnapp.util.SharedPreferencesUtil;
+import com.sina.weibo.sdk.auth.AuthInfo;
+import com.sina.weibo.sdk.auth.Oauth2AccessToken;
+import com.sina.weibo.sdk.auth.WeiboAuthListener;
+import com.sina.weibo.sdk.auth.sso.SsoHandler;
+import com.sina.weibo.sdk.exception.WeiboException;
+import com.tencent.connect.UserInfo;
+import com.tencent.connect.common.Constants;
+import com.tencent.sdk.BaseUIListener;
+import com.tencent.sdk.qqUtil;
+import com.tencent.tauth.IUiListener;
+import com.tencent.tauth.Tencent;
+import com.tencent.tauth.UiError;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.method.HideReturnsTransformationMethod;
-import android.text.method.PasswordTransformationMethod;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.os.SystemClock;
+import android.text.TextUtils;
+import android.util.Log;
+
 import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
-import android.widget.EditText;
-import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.ListView;
+import android.widget.SimpleAdapter;
 import android.widget.Toast;
 
-public class BM005LoginActivity extends Activity 
-{
-	private Intent it;
-	private EditText txtUser;
-	private EditText txtPasswd;
-    private CheckBox chkIsShow;
-    private Button btnLogin;
+public class BM005LoginActivity extends Activity {
+	private ListView loginListView;
+	private SimpleAdapter mAdapter;
 
-	protected void onCreate(Bundle savedInstanceState) 
-	{
+	private AuthInfo weiboAuthInfo;
+	private Oauth2AccessToken weiboAccessToken;
+	private SsoHandler weiboSsoHandler;
+
+	private Tencent mTencent;
+	private UserInfo qqInfo;
+	private static boolean isServerSideLogin = false;
+	
+	
+
+	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.bm005_login);
-		
-		txtPasswd = (EditText)findViewById(R.id.txtPasswd);
-		txtUser = (EditText)findViewById(R.id.txtUser);
-		chkIsShow = (CheckBox)findViewById(R.id.chkIsShow);
-		btnLogin = (Button)findViewById(R.id.btnLogin);
-
-		txtPasswd.setTransformationMethod(PasswordTransformationMethod.getInstance());
-		chkIsShow.setOnCheckedChangeListener(new OnCheckedChangeListener()
-		{
-	         public void onCheckedChanged(CompoundButton arg0,boolean arg1) 
-	         {
-	            if(chkIsShow.isChecked())
-	            	txtPasswd.setTransformationMethod(HideReturnsTransformationMethod.getInstance());//ÉèÖÃEditTextµÄÃÜÂëÎª¿É¼ûµÄ
-	            else 
-	            	txtPasswd.setTransformationMethod(PasswordTransformationMethod.getInstance());//ÉèÖÃÃÜÂëÎªÒş²ØµÄ
-	         }
+		loginListView = (ListView) findViewById(R.id.login_list);
+		mAdapter = new SimpleAdapter(this, getData(), R.layout.login_item,
+				new String[] { "logo", "name" }, new int[] { R.id.login_logo,
+						R.id.login_name });
+		loginListView.setAdapter(mAdapter);
+		loginListView.setOnItemClickListener(new LoginItemClickListener());
+		findViewById(R.id.login_back).setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				returnOnClick();
+			}
 		});
 	}
 
-	public boolean onCreateOptionsMenu(Menu menu) 
-	{
-		getMenuInflater().inflate(R.menu.deng_lu, menu);
-		return true;
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		if (weiboSsoHandler != null) {
+			weiboSsoHandler.authorizeCallBack(requestCode, resultCode, data);
+		}
+
+		if (requestCode == Constants.REQUEST_LOGIN
+				|| requestCode == Constants.REQUEST_APPBAR) {
+			Tencent.onActivityResultData(requestCode, resultCode, data,
+					qqLoginListener);
+		}
+		super.onActivityResult(requestCode, resultCode, data);
+
 	}
 
-	public boolean onOptionsItemSelected(MenuItem item) 
-	{
-		// Handle action bar item clicks here. The action bar will
-		// automatically handle clicks on the Home/Up button, so long
-		// as you specify a parent activity in AndroidManifest.xml.
-		int id = item.getItemId();
-		if (id == R.id.action_settings) {
-			return true;
+	private class LoginItemClickListener implements OnItemClickListener {
+
+		@Override
+		public void onItemClick(AdapterView<?> parent, View view, int position,
+				long id) {
+			// TODO Auto-generated method stub
+			switch (position) {
+			case 0:
+				weiboAuthInfo = new AuthInfo(BM005LoginActivity.this,
+						WeiboConstants.APP_KEY, WeiboConstants.REDIRECT_URL,
+						WeiboConstants.SCOPE);
+				weiboSsoHandler = new SsoHandler(BM005LoginActivity.this,
+						weiboAuthInfo);
+				weiboSsoHandler.authorize(new AuthListener());
+				break;
+
+			case 1:
+				mTencent = Tencent.createInstance("1105324183",
+						getApplicationContext());
+				onQQClickLogin();
+			default:
+				break;
+			}
 		}
-		return super.onOptionsItemSelected(item);
+
 	}
-	
-	public void backLoginOnClick(View v)
-	{
-		finish();
-	    it = new Intent(this,AM001HomePageActivity.class);
-	    startActivity(it);
-	}
-	
-	public void btnloginOnClick(View v)
-	{
-		BmService bm = new BmServiceImpl();
-		String user = txtUser.getText().toString();
-		String password = txtPasswd.getText().toString();
-		
-		if(user.trim().equals(""))
-		{
-			Toast.makeText(getApplicationContext(), "ÓÃ»§Ãû²»ÄÜÎª¿Õ£¬ÇëÊäÈëÓÃ»§Ãû!", Toast.LENGTH_LONG).show();
-			txtUser.setFocusable(true);
-			return;
+
+	public void onQQClickLogin() {
+		if (!mTencent.isSessionValid()) {
+			mTencent.login(this, "all", qqLoginListener);
+			isServerSideLogin = false;
+			Log.d("SDKQQAgentPref",
+					"FirstLaunch_SDK:" + SystemClock.elapsedRealtime());
+		} else {
+			if (isServerSideLogin) { // Server-Side æ¨¡å¼çš„ç™»é™†, å…ˆé€€å‡ºï¼Œå†è¿›è¡ŒSSOç™»é™†
+				mTencent.logout(this);
+				mTencent.login(this, "all", qqLoginListener);
+				isServerSideLogin = false;
+				Log.d("SDKQQAgentPref",
+						"FirstLaunch_SDK:" + SystemClock.elapsedRealtime());
+				return;
+			}
+			mTencent.logout(this);
 		}
-		
-		if(password.trim().equals(""))
-		{
-			Toast.makeText(getApplicationContext(), "µÇÂ½ÃÜÂë²»ÄÜÎª¿Õ£¬ÇëÊäÈëÓÃ»§Ãû!", Toast.LENGTH_LONG).show();
-			txtPasswd.setFocusable(true);
-			return;
-		}
-			
-		if(bm.login(user, password))
-		{
-			finish();
-		//	it = new Intent(this,PersonalCenterActivity.class);
-		//	startActivity(it);
-		}
-		else
-		{
-			Toast.makeText(getApplicationContext(), "ÓÃ»§Ãû»òÃÜÂë´íÎó", Toast.LENGTH_LONG).show();
-			txtPasswd.setText("");
-			txtPasswd.setFocusable(true);
+
+	}
+
+	IUiListener qqLoginListener = new BaseUiListener() {
+		protected void doComplete(JSONObject values) {
+			Log.d("SDKQQAgentPref",
+					"AuthorSwitch_SDK:" + SystemClock.elapsedRealtime());
+			initOpenidAndToken(values);
+		};
+	};
+
+	public void initOpenidAndToken(JSONObject jsonObject) {
+		try {
+			String token = jsonObject.getString(Constants.PARAM_ACCESS_TOKEN);
+			String expires = jsonObject.getString(Constants.PARAM_EXPIRES_IN);
+			String openId = jsonObject.getString(Constants.PARAM_OPEN_ID);
+			if (!TextUtils.isEmpty(token) && !TextUtils.isEmpty(expires)
+					&& !TextUtils.isEmpty(openId)) {
+				mTencent.setAccessToken(token, expires);
+				mTencent.setOpenId(openId);
+			}
+			SharedPreferencesUtil sharedPreferencesUtil = new SharedPreferencesUtil(
+					BM005LoginActivity.this, "QQOpenidAndYOKen",
+					Activity.MODE_PRIVATE);
+			sharedPreferencesUtil.saveDate("token", token);
+			sharedPreferencesUtil.saveDate("expires", expires);
+			sharedPreferencesUtil.saveDate("openId", openId);
+			returnOnClick();
+		} catch (Exception e) {
 		}
 	}
-	
-	public void btnChangePasswdOnClick(View v)
-	{
-		it = new Intent(this,BM003ResetPasswdActivity.class);
-		startActivity(it);
+
+	private class BaseUiListener implements IUiListener {
+
+		@Override
+		public void onComplete(Object response) {
+			if (null == response) {
+				qqUtil.showResultDialog(BM005LoginActivity.this, "è¿”å›ä¸ºç©º", "ç™»å½•å¤±è´¥");
+				return;
+			}
+			JSONObject jsonResponse = (JSONObject) response;
+			if (null != jsonResponse && jsonResponse.length() == 0) {
+				qqUtil.showResultDialog(BM005LoginActivity.this, "è¿”å›ä¸ºç©º", "ç™»å½•å¤±è´¥");
+				return;
+			}
+//			qqUtil.showResultDialog(BM005LoginActivity.this,
+//					response.toString(), "ç™»å½•æˆåŠŸ");
+			SharedPreferencesUtil sharedPreferencesUtil = new SharedPreferencesUtil(
+					BM005LoginActivity.this, "loginWay",
+					Activity.MODE_PRIVATE);
+			sharedPreferencesUtil.saveDate("loginWay", "1");
+			Toast.makeText(BM005LoginActivity.this, "QQç™»å½•æˆåŠŸ", Toast.LENGTH_SHORT).show();
+			doComplete((JSONObject) response);
+		}
+
+		protected void doComplete(JSONObject values) {
+
+		}
+
+		@Override
+		public void onError(UiError e) {
+			qqUtil.toastMessage(BM005LoginActivity.this, "onError: "
+					+ e.errorDetail);
+			qqUtil.dismissDialog();
+		}
+
+		@Override
+		public void onCancel() {
+			qqUtil.toastMessage(BM005LoginActivity.this, "onCancel: ");
+			qqUtil.dismissDialog();
+			if (isServerSideLogin) {
+				isServerSideLogin = false;
+			}
+		}
 	}
-	
-	public void btnBmRegisterActivityOnClick(View v)
-	{
-		it = new Intent(this,BM001RegisterActivity.class);
-		startActivity(it);
+
+	private List<HashMap<String, Object>> getData() {
+		List<HashMap<String, Object>> list = new ArrayList<>();
+		HashMap<String, Object> map = new HashMap<>();
+		map.put("logo", R.drawable.weibo_logo);
+		map.put("name", "å¾®åšç™»å½•");
+		list.add(map);
+
+		HashMap<String, Object> map2 = new HashMap<>();
+		map2.put("logo", R.drawable.qq_logo);
+		map2.put("name", "QQç™»å½•");
+		list.add(map2);
+		return list;
 	}
+
+	public void returnOnClick() {
+		this.finish();
+	}
+
+	/**
+	 * ç™»å…¥æŒ‰é’®çš„ç›‘å¬å™¨ï¼Œæ¥æ”¶æˆæƒç»“æœã€‚
+	 */
+	private class AuthListener implements WeiboAuthListener {
+		@Override
+		public void onComplete(Bundle values) {
+			weiboAccessToken = Oauth2AccessToken.parseAccessToken(values);
+			if (weiboAccessToken != null && weiboAccessToken.isSessionValid()) {
+				AccessTokenKeeper.writeAccessToken(getApplicationContext(),
+						weiboAccessToken);
+				SharedPreferencesUtil sharedPreferencesUtil = new SharedPreferencesUtil(
+						BM005LoginActivity.this, "loginWay",
+						Activity.MODE_PRIVATE);
+				sharedPreferencesUtil.saveDate("loginWay", "0");
+				Toast.makeText(BM005LoginActivity.this, "å¾®åšç™»å½•æˆåŠŸ",
+						Toast.LENGTH_SHORT).show();
+				returnOnClick();
+			} else {
+				// ä»¥ä¸‹å‡ ç§æƒ…å†µï¼Œæ‚¨ä¼šæ”¶åˆ° Codeï¼š
+				// 1. å½“æ‚¨æœªåœ¨å¹³å°ä¸Šæ³¨å†Œçš„åº”ç”¨ç¨‹åºçš„åŒ…åä¸ç­¾åæ—¶ï¼›
+				// 2. å½“æ‚¨æ³¨å†Œçš„åº”ç”¨ç¨‹åºåŒ…åä¸ç­¾åä¸æ­£ç¡®æ—¶ï¼›
+				// 3. å½“æ‚¨åœ¨å¹³å°ä¸Šæ³¨å†Œçš„åŒ…åå’Œç­¾åä¸æ‚¨å½“å‰æµ‹è¯•çš„åº”ç”¨çš„åŒ…åå’Œç­¾åä¸åŒ¹é…æ—¶ã€‚
+				String code = values.getString("code");
+				String message = "failed";
+				if (!TextUtils.isEmpty(code)) {
+					message = message + "\nObtained the code: " + code;
+				}
+				Toast.makeText(BM005LoginActivity.this, message,
+						Toast.LENGTH_SHORT).show();
+			}
+		}
+
+		@Override
+		public void onWeiboException(WeiboException e) {
+			Toast.makeText(BM005LoginActivity.this, e.getMessage(),
+					Toast.LENGTH_SHORT).show();
+		}
+
+		@Override
+		public void onCancel() {
+			Toast.makeText(BM005LoginActivity.this, "cancle",
+					Toast.LENGTH_SHORT).show();
+		}
+	}
+
 }

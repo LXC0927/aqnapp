@@ -202,6 +202,7 @@ public class AM001HomePageActivity extends Activity {
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
 		this.btnLocation.setText(app.getCity());
+//		String type = data.getStringExtra("type");
 		switchMainContent(layoutMapView);
 		mapFrg.setCityRange(app.getProvinceId(),app.getCity());
 		mapFrg.addView(3);
@@ -245,15 +246,13 @@ public class AM001HomePageActivity extends Activity {
 		Intent intent = getIntent();
 		String type = intent.getStringExtra("type");
 		if (type != null) {
-			switch (intent.getStringExtra("type")) {
+			switch (type) {
 			case "spot":
-//				map.mapClear();
-//				map.setSpotArea(Integer.parseInt(intent.getStringExtra("id")));
-//				map.setJingDianPointer(Integer.parseInt(intent
-//						.getStringExtra("id")));
-//				map.setMapCenter(Integer.parseInt(intent.getStringExtra("id")),
-//						16);
-				mapFrg.setJingDianPointer(Integer.parseInt(intent.getStringExtra("id")));
+				intent.putExtra("type", "null");
+				int spotId = Integer.parseInt(intent.getStringExtra("id"));
+				mapFrg.setJingDianPointer(spotId);
+				mapFrg.addView(4);
+				mapFrg.setJingDianResultListView(spotId,intent.getStringExtra("spotName"));
 				break;
 
 			default:
