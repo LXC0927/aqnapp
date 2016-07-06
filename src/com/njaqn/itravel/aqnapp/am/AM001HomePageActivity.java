@@ -1,35 +1,44 @@
 package com.njaqn.itravel.aqnapp.am;
 
-import com.njaqn.itravel.aqnapp.bm.BM005LoginActivity;
-
-import com.njaqn.itravel.aqnapp.service.fragment.CommunityFragment;
 import com.njaqn.itravel.aqnapp.service.fragment.FacilityFragment;
 import com.njaqn.itravel.aqnapp.service.fragment.MapFragment;
 import com.njaqn.itravel.aqnapp.service.fragment.SelfFragment;
-import com.njaqn.itravel.aqnapp.util.MapUtil;
 import com.njaqn.itravel.aqnapp.util.VoiceUtil;
 import com.njaqn.itravel.aqnapp.AppInfo;
 import com.njaqn.itravel.aqnapp.R;
-
-import android.app.Activity;
-import android.app.FragmentManager;
-import android.app.FragmentTransaction;
+import com.umeng.comm.core.CommunitySDK;
+import com.umeng.comm.core.beans.CommConfig;
+import com.umeng.comm.core.beans.CommUser;
+import com.umeng.comm.core.impl.CommunityFactory;
+import com.umeng.comm.core.sdkmanager.LocationSDKManager;
+import com.umeng.comm.core.sdkmanager.ShareSDKManager;
+import com.umeng.comm.core.utils.CommonUtils;
+import com.umeng.comm.ui.fragments.CommunityMainFragment;
+import com.umeng.community.location.DefaultLocationImpl;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
 import android.view.View;
+import android.view.Window;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 
-public class AM001HomePageActivity extends Activity {
-//	private MapUtil map = null;
+public class AM001HomePageActivity extends FragmentActivity {
+	// private MapUtil map = null;
 	private VoiceUtil vutil;
 
 	public VoiceUtil getVutil() {
 		return vutil;
 	}
-
+	
+	private TextView topTitle;
+	private ImageView imgSearch;
 	private ImageView imgPlayView;
 	private ImageView imgCommunityView;
 	private ImageView imgFacilityView;
@@ -42,6 +51,7 @@ public class AM001HomePageActivity extends Activity {
 	}
 
 	private Button btnLocation;
+
 	public Button getBtnLocation() {
 		return btnLocation;
 	}
@@ -58,20 +68,32 @@ public class AM001HomePageActivity extends Activity {
 		return mapFrg;
 	}
 
-	private CommunityFragment commFrg;
+	private CommunityMainFragment commFrg;
 	private FacilityFragment facFrg;
 	private SelfFragment selfFrg;
 
 	private Animation animation;
 
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
+	private CommunitySDK mCommSDK = null;
+	public CommunitySDK getmCommSDK() {
+		return mCommSDK;
+	}
 
+
+	private String topicId = "";
+
+	protected void onCreate(Bundle savedInstanceState) {
+		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		// 1、初始化友盟微社区
+		mCommSDK = CommunityFactory.getCommSDK(this);
+		super.onCreate(savedInstanceState);
+		// 设置地理位置SDK
+		LocationSDKManager.getInstance().addAndUse(new DefaultLocationImpl());
 		app = (AppInfo) getApplication(); // 获取Application
 		// 初始化语音播放配置
 		vutil = new VoiceUtil(this);
 
-//		map = new MapUtil(this.getApplicationContext(), app, vutil);
 		setContentView(R.layout.am001_home_page);
 
 		//
@@ -125,11 +147,15 @@ public class AM001HomePageActivity extends Activity {
 	}
 
 	private void setEvent(int i) {
-		FragmentManager fragManager = getFragmentManager();
+		FragmentManager fragManager = getSupportFragmentManager();
 		FragmentTransaction fragTransaction = fragManager.beginTransaction();
 		hideFragment(fragTransaction);
+		resetTopMeau();
 		switch (i) {
 		case 0:
+			topTitle.setText("");
+			imgSearch.setVisibility(View.VISIBLE);
+			btnLocation.setVisibility(View.VISIBLE);		
 			if (mapFrg == null) {
 				mapFrg = new MapFragment();
 				fragTransaction.add(R.id.homeView, mapFrg);
@@ -139,14 +165,17 @@ public class AM001HomePageActivity extends Activity {
 			break;
 
 		case 1:
+			topTitle.setText("社区");
 			if (commFrg == null) {
-				commFrg = new CommunityFragment();
+				commFrg = new CommunityMainFragment();
+				commFrg.setBackButtonVisibility(View.GONE);
 				fragTransaction.add(R.id.homeView, commFrg);
 			} else {
 				fragTransaction.show(commFrg);
 			}
 			break;
 		case 2:
+			topTitle.setText("设施");
 			if (facFrg == null) {
 				facFrg = new FacilityFragment();
 				fragTransaction.add(R.id.homeView, facFrg);
@@ -155,17 +184,25 @@ public class AM001HomePageActivity extends Activity {
 			}
 			break;
 		case 3:
+			topTitle.setText("我的");
 			if (selfFrg == null) {
 				selfFrg = new SelfFragment();
 
 				fragTransaction.add(R.id.homeView, selfFrg);
 			} else {
 				fragTransaction.show(selfFrg);
+				selfFrg.initUser();
 			}
 			break;
 		}
 		fragTransaction.commit();
 
+	}
+
+	private void resetTopMeau() {
+		topTitle.setText("");
+		imgSearch.setVisibility(View.INVISIBLE);
+		btnLocation.setVisibility(View.INVISIBLE);		
 	}
 
 	private void hideFragment(FragmentTransaction ft) {
@@ -183,29 +220,23 @@ public class AM001HomePageActivity extends Activity {
 		}
 	}
 
-	public void downloadOnClick(View v) {
-		Intent intent = new Intent(this, AM004DownloadActivity.class);
-		startActivity(intent);
-	}
-
 	public void btnLocationOnClick(View v) {
 		Intent city = new Intent(this, AM003CityChangeActivity.class);
 		startActivityForResult(city, 0);
 	}
 
-	public void btnMyOnClick(View v) {
-		Intent login = new Intent(this, BM005LoginActivity.class);
-		startActivity(login);
-	}
-
-	// 进行城市切换
 	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 		super.onActivityResult(requestCode, resultCode, data);
-		this.btnLocation.setText(app.getCity());
-//		String type = data.getStringExtra("type");
-		switchMainContent(layoutMapView);
-		mapFrg.setCityRange(app.getProvinceId(),app.getCity());
-		mapFrg.addView(3);
+		if (requestCode == 0) {
+			this.btnLocation.setText(app.getCity());
+			switchMainContent(layoutMapView);
+			mapFrg.setCityRange(app.getProvinceId(), app.getCity());
+			mapFrg.addView(3);
+		} else {
+			ShareSDKManager.getInstance().getCurrentSDK()
+					.onActivityResult(this, requestCode, resultCode, data);
+		}
+
 	}
 
 	public void imgSearchOnClick(View v) {
@@ -221,6 +252,8 @@ public class AM001HomePageActivity extends Activity {
 	}
 
 	private void initView() {
+		topTitle = (TextView) findViewById(R.id.topTitle);
+		imgSearch = (ImageView) findViewById(R.id.imgSearch);
 		imgPlayView = (ImageView) findViewById(R.id.imgPlayView);
 		imgCommunityView = (ImageView) findViewById(R.id.imgCommunityView);
 		imgFacilityView = (ImageView) findViewById(R.id.imgFacilityView);
@@ -252,7 +285,8 @@ public class AM001HomePageActivity extends Activity {
 				int spotId = Integer.parseInt(intent.getStringExtra("id"));
 				mapFrg.setJingDianPointer(spotId);
 				mapFrg.addView(4);
-				mapFrg.setJingDianResultListView(spotId,intent.getStringExtra("spotName"));
+				mapFrg.setJingDianResultListView(spotId,
+						intent.getStringExtra("spotName"));
 				break;
 
 			default:
@@ -260,6 +294,12 @@ public class AM001HomePageActivity extends Activity {
 			}
 		}
 
+	}
+	
+	@Override
+	protected void onSaveInstanceState(Bundle outState) {
+		// TODO Auto-generated method stub
+//		super.onSaveInstanceState(outState);
 	}
 
 }

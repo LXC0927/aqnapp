@@ -3,38 +3,34 @@ package com.njaqn.itravel.aqnapp.service.fragment;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.baidu.platform.comapi.map.r;
-import com.njaqn.itravel.aqnapp.AccessTokenKeeper;
-import com.njaqn.itravel.aqnapp.WeiboConstants;
 import com.njaqn.itravel.aqnapp.R;
 import com.njaqn.itravel.aqnapp.am.AM001HomePageActivity;
 import com.njaqn.itravel.aqnapp.bm.BM005LoginActivity;
 import com.njaqn.itravel.aqnapp.bm.BM007SettingAcitivity;
 import com.njaqn.itravel.aqnapp.util.ImageDownLoader;
-import com.njaqn.itravel.aqnapp.util.SharedPreferencesUtil;
 import com.njaqn.itravel.aqnapp.util.ImageDownLoader.onImageLoaderListener;
-import com.sina.weibo.sdk.auth.Oauth2AccessToken;
-import com.sina.weibo.sdk.exception.WeiboException;
-import com.sina.weibo.sdk.net.RequestListener;
-import com.sina.weibo.sdk.openapi.UsersAPI;
-import com.sina.weibo.sdk.openapi.models.ErrorInfo;
-import com.sina.weibo.sdk.openapi.models.User;
-import com.sina.weibo.sdk.utils.LogUtil;
+import com.njaqn.itravel.aqnapp.util.SharedPreferencesUtil;
 import com.tencent.connect.UserInfo;
-import com.tencent.connect.common.Constants;
-import com.tencent.sdk.BaseUIListener;
-import com.tencent.sdk.qqUtil;
-import com.tencent.tauth.IUiListener;
-import com.tencent.tauth.Tencent;
-import com.tencent.tauth.UiError;
+import com.umeng.comm.core.CommunitySDK;
+import com.umeng.comm.core.beans.CommConfig;
+import com.umeng.comm.core.beans.CommUser;
+import com.umeng.comm.core.constants.Constants;
+import com.umeng.comm.core.login.LoginListener;
+import com.umeng.comm.core.login.Loginable;
+import com.umeng.comm.core.sdkmanager.ImageLoaderManager;
+import com.umeng.comm.core.sdkmanager.LoginSDKManager;
+import com.umeng.comm.core.utils.CommonUtils;
+import com.umeng.comm.ui.activities.FindActivity;
+import com.umeng.comm.ui.activities.UserInfoActivity;
+import com.umeng.common.ui.widgets.NetworkImageView;
 
 import android.app.Activity;
-import android.app.Fragment;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.app.Fragment;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -53,16 +49,19 @@ public class SelfFragment extends Fragment implements OnClickListener {
 	private RelativeLayout ReltSetting;
 	private RelativeLayout ReltFeedback;
 	private TextView mlogin;
-	private ImageView mImageView;
+	private NetworkImageView mImageView;
 
 	private int loginWay = 10;
+	private boolean isLogined = false;
 
-	private Oauth2AccessToken weiboAccessToken;
-	private UsersAPI weiboUsersAPI;
+	protected CommUser mUser;
 
-	private UserInfo qqInfo = null;
-	private Tencent mTencent;
-	private static String mAppid = "1105324183";
+	// private Oauth2AccessToken weiboAccessToken;
+	// private UsersAPI weiboUsersAPI;
+
+	// private UserInfo qqInfo = null;
+	// private Tencent mTencent;
+	// private static String mAppid = "1105324183";
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -70,176 +69,34 @@ public class SelfFragment extends Fragment implements OnClickListener {
 
 		root = inflater.inflate(R.layout.am001_fragment_selfview, null);
 		initView();
+		mUser = new CommUser();
+		initUser();
 		return root;
+	}
+
+	public void initUser() {
+		isLogined = CommonUtils.isLogin(getActivity());
+		if (isLogined) {
+			if (!mUser.equals(CommConfig.getConfig().loginedUser)) {
+				mUser = CommConfig.getConfig().loginedUser;
+				mlogin.setText(mUser.name);
+				String iconUrl = mUser.iconUrl;
+				mImageView.setImageUrl(iconUrl);
+			}
+		} else {
+			mImageView.setImageResource(R.drawable.icon_unlogin);
+			mlogin.setText("点击登陆");
+		}
 	}
 
 	@Override
 	public void onStart() {
-		mImageView.setImageResource(R.drawable.icon_unlogin);
-		mlogin.setText("点击登陆/注册");
-		SharedPreferencesUtil sharedPreferencesUtil = new SharedPreferencesUtil(
-				getActivity(), "loginWay", Activity.MODE_PRIVATE);
-		String way = sharedPreferencesUtil.getData("loginWay");
-		if (way.length() > 0) {
-			loginWay = Integer.parseInt(way);
-		}
-		switch (loginWay) {
-		case 0:
-			showWeiboInfo();
-			break;
-		case 1:
-			showQQInfo();
-			break;
-		default:
-			break;
-		}
-
+		initUser();
 		super.onStart();
 	}
 
-	private void showQQInfo() {
-		mTencent = Tencent.createInstance(mAppid, getActivity());
-		SharedPreferencesUtil sharedPreferencesUtil = new SharedPreferencesUtil(
-				getActivity(), "QQOpenidAndYOKen", Activity.MODE_PRIVATE);
-
-		String token = sharedPreferencesUtil.getData("token");
-		String expires = sharedPreferencesUtil.getData("expires");
-		String openId = sharedPreferencesUtil.getData("openId");
-		if (token.length() > 0 && expires.length() > 0 && openId.length() > 0) {
-			mTencent.setAccessToken(token, expires);
-			mTencent.setOpenId(openId);
-//			 qqInfo = new UserInfo(getActivity(), mTencent.getQQToken());
-//			 qqInfo.getUserInfo(new BaseUIListener(getActivity(),
-//			 "get_simple_userinfo"));
-//			 qqUtil.showProgressDialog(getActivity(), null, null);
-			if (mTencent.isSessionValid()) {
-				IUiListener listener = new IUiListener() {
-
-					@Override
-					public void onError(UiError arg0) {
-
-					}
-
-					@Override
-					public void onComplete(final Object response) {
-						Message msg = new Message();
-						msg.obj = response;
-						msg.what = 0;
-						qqHandler.sendMessage(msg);
-						new Thread() {
-
-							@Override
-							public void run() {
-								JSONObject json = (JSONObject) response;
-								if (json.has("figureurl")) {
-									Bitmap bitmap = null;
-									try {
-										bitmap = qqUtil.getbitmap(json
-												.getString("figureurl_qq_2"));
-									} catch (JSONException e) {
-
-									}
-									Message msg = new Message();
-									msg.obj = bitmap;
-									msg.what = 1;
-									qqHandler.sendMessage(msg);
-								}
-							}
-
-						}.start();
-					}
-
-					@Override
-					public void onCancel() {
-						// TODO Auto-generated method stub
-
-					}
-				};
-				qqInfo = new UserInfo(getActivity(), mTencent.getQQToken());
-				qqInfo.getUserInfo(listener);
-			}
-		}
-
-	}
-
-	Handler qqHandler = new Handler() {
-
-		@Override
-		public void handleMessage(Message msg) {
-			if (msg.what == 0) {
-				JSONObject response = (JSONObject) msg.obj;
-				if (response.has("nickname")) {
-					try {
-						mlogin.setText(response.getString("nickname"));
-					} catch (JSONException e) {
-						e.printStackTrace();
-					}
-				}
-			} else if (msg.what == 1) {
-				Bitmap bitmap = (Bitmap) msg.obj;
-				mImageView.setImageBitmap(bitmap);
-			}
-		}
-
-	};
-
-	public void showWeiboInfo() {
-		weiboAccessToken = AccessTokenKeeper.readAccessToken(getActivity());
-		if (weiboAccessToken != null && weiboAccessToken.isSessionValid()) {
-			weiboUsersAPI = new UsersAPI(getActivity(), WeiboConstants.APP_KEY,
-					weiboAccessToken);
-			long uid = Long.parseLong(weiboAccessToken.getUid());
-			weiboUsersAPI.show(uid, new RequestListener() {
-
-				@Override
-				public void onWeiboException(WeiboException e) {
-					LogUtil.e("weibo", e.getMessage());
-					ErrorInfo info = ErrorInfo.parse(e.getMessage());
-					Toast.makeText(getActivity(), info.toString(),
-							Toast.LENGTH_SHORT).show();
-				}
-
-				@Override
-				public void onComplete(String response) {
-					if (!TextUtils.isEmpty(response)) {
-						LogUtil.i("weibo", response);
-						// 调用 User#parse 将JSON串解析成User对象
-						User user = User.parse(response);
-						if (user != null) {
-							mlogin.setText(user.screen_name);
-							String string = user.avatar_large;
-							Bitmap bitmap = new ImageDownLoader(getActivity())
-									.downloadImage(string,
-											new onImageLoaderListener() {
-
-												@Override
-												public void onImageLoader(
-														Bitmap bitmap,
-														String url) {
-													if (mImageView != null
-															&& bitmap != null) {
-														mImageView
-																.setImageBitmap(bitmap);
-													}
-
-												}
-											});
-							if (bitmap != null) {
-								mImageView.setImageBitmap(bitmap);
-							}
-
-						} else {
-							Toast.makeText(getActivity(), response,
-									Toast.LENGTH_SHORT).show();
-						}
-					}
-				}
-			});
-		}
-	}
-
 	private void initView() {
-		mImageView = (ImageView) root.findViewById(R.id.iv_login);
+		mImageView = (NetworkImageView) root.findViewById(R.id.iv_login);
 		mlogin = (TextView) root.findViewById(R.id.tv_login);
 		ReltFeedback = (RelativeLayout) root.findViewById(R.id.rl_feedback);
 		ReltOrder = (RelativeLayout) root.findViewById(R.id.rl_order);
@@ -249,6 +106,14 @@ public class SelfFragment extends Fragment implements OnClickListener {
 		ReltSetting.setOnClickListener(this);
 		mlogin.setOnClickListener(this);
 
+	}
+
+	public TextView getMlogin() {
+		return mlogin;
+	}
+
+	public NetworkImageView getmImageView() {
+		return mImageView;
 	}
 
 	@Override
@@ -261,8 +126,33 @@ public class SelfFragment extends Fragment implements OnClickListener {
 			startActivity(intent);
 			break;
 		case R.id.tv_login:
-			intent = new Intent(this.getActivity(), BM005LoginActivity.class);
-			startActivity(intent);
+			if (isLogined) {
+				intent = new Intent(getActivity(), FindActivity.class);
+				intent.putExtra(Constants.TAG_USER, mUser);
+				startActivity(intent);
+			} else {
+				CommunitySDK communitySDK = ((AM001HomePageActivity) getActivity())
+						.getmCommSDK();
+				communitySDK.login(getActivity().getApplicationContext(),
+						new LoginListener() {
+
+							@Override
+							public void onStart() {
+								// TODO Auto-generated method stub
+
+							}
+
+							@Override
+							public void onComplete(int arg0, CommUser commUser) {
+								mUser = commUser;
+								mlogin.setText(commUser.name);
+								String iconUrl = commUser.iconUrl;
+								mImageView.setImageUrl(iconUrl);
+								isLogined = true;
+							}
+						});
+			}
+
 			break;
 
 		default:

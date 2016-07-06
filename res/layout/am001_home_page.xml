@@ -20,6 +20,15 @@
             android:paddingLeft="3dp"
             android:text="南京"
             android:textColor="@drawable/am003_btn_color" />
+        
+        <TextView 
+            android:id="@+id/topTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="topTitle"
+            android:textColor="#ffffff"
+            android:textSize="20sp"/>
 
         <ImageView
             android:id="@+id/imgSearch"

@@ -1,5 +1,7 @@
 package com.njaqn.itravel.aqnapp;
 
+import org.json.JSONObject;
+
 import com.baidu.location.BDLocation;
 import com.baidu.location.service.LocationService;
 import com.baidu.mapapi.SDKInitializer;
@@ -10,12 +12,21 @@ import com.njaqn.itravel.aqnapp.service.BaseServiceImpl;
 import com.njaqn.itravel.aqnapp.service.bean.BCityBean;
 import com.njaqn.itravel.aqnapp.service.bean.BCountryBean;
 import com.njaqn.itravel.aqnapp.service.bean.BProvinceBean;
+import com.umeng.comm.core.constants.Constants;
+import com.umeng.message.PushAgent;
+import com.umeng.message.UHandler;
+import com.umeng.message.UmengMessageHandler;
+import com.umeng.message.entity.UMessage;
+import com.umeng.socialize.PlatformConfig;
 
 import android.app.Activity;
 import android.app.Application;
 import android.app.Service;
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.os.Bundle;
 import android.os.Vibrator;
 
 public class AppInfo extends Application {
@@ -202,6 +213,57 @@ public class AppInfo extends Application {
 		locationService = new LocationService(getApplicationContext());
 		SDKInitializer.initialize(getApplicationContext());
 
+		PlatformConfig.setWeixin("wx96110a1e3af63a39",
+				"c60e3d3ff109a5d17013df272df99199");
+		// 豆瓣RENREN平台目前只能在服务器端配置
+		// 新浪微博
+		PlatformConfig.setSinaWeibo("1149737488",
+				"9b8b7f6f50d8d83be633d5b18ab70921");
+		PlatformConfig.setQQZone("1105324183", "j67wUYKODKjfPkaD");
+		PushAgent.getInstance(this).setDebugMode(true);
+		PushAgent.getInstance(this).setMessageHandler(
+				new UmengMessageHandler() {
+					@Override
+					public void dealWithNotificationMessage(Context arg0,
+							UMessage msg) {
+						// 调用父类方法,这里会在通知栏弹出提示信息
+						super.dealWithNotificationMessage(arg0, msg);
+						// Log.e("", "### 自行处理推送消息");
+					}
+				});
+		PushAgent.getInstance(this).setNotificationClickHandler(new UHandler() {
+			@Override
+			public void handleMessage(Context context, UMessage uMessage) {
+				com.umeng.comm.core.utils.Log.d("notifi", "getting message");
+				try {
+					JSONObject jsonObject = uMessage.getRaw();
+					String feedid = "";
+					if (jsonObject != null) {
+						com.umeng.comm.core.utils.Log.d("json",
+								jsonObject.toString());
+						JSONObject extra = uMessage.getRaw().optJSONObject(
+								"extra");
+						feedid = extra.optString(Constants.FEED_ID);
+					}
+					Class myclass = Class.forName(uMessage.activity);
+					Intent intent = new Intent(context, myclass);
+					Bundle bundle = new Bundle();
+					bundle.putString(Constants.FEED_ID, feedid);
+					intent.putExtras(bundle);
+					intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+					startActivity(intent);
+				} catch (Exception e) {
+					com.umeng.comm.core.utils.Log.d("class", e.getMessage());
+				}
+			}
+		});
 	}
+
+	// 如果发现Method Over 65K的错误的话就反注释这段代码
+	// @Override
+	// protected void attachBaseContext(Context base) {
+	// super.attachBaseContext(base);
+	// MultiDex.install(this);
+	// }
 
 }

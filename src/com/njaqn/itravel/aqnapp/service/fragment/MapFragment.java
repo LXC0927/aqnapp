@@ -58,7 +58,6 @@ import com.baoyz.swipemenulistview.SwipeMenuListView.OnMenuItemClickListener;
 import com.njaqn.itravel.aqnapp.AppInfo;
 import com.njaqn.itravel.aqnapp.R;
 import com.njaqn.itravel.aqnapp.am.AM001HomePageActivity;
-import com.njaqn.itravel.aqnapp.am.AM002SearchActivity;
 import com.njaqn.itravel.aqnapp.am.AM006SpotActivity;
 import com.njaqn.itravel.aqnapp.listener.MyOrientationListener;
 import com.njaqn.itravel.aqnapp.listener.MyOrientationListener.OnOrientationListener;
@@ -74,7 +73,6 @@ import com.njaqn.itravel.aqnapp.util.MapUtil;
 import com.njaqn.itravel.aqnapp.util.MapUtil.JingDianListener;
 import com.njaqn.itravel.aqnapp.util.VoiceUtil;
 
-import android.app.Fragment;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Point;
@@ -82,6 +80,8 @@ import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.v4.app.Fragment;
+import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -166,10 +166,26 @@ public class MapFragment extends Fragment implements
 	private View rootView;
 	private Handler handler;
 	private VoiceUtil voiceUtil;
+	private float density = 1f;
 
 	public MapFragment() {
-		// this.map = map;
+		
 	}
+
+	public void initDensity() {
+		DisplayMetrics displayMetrics = new DisplayMetrics();
+		displayMetrics = getActivity().getResources().getDisplayMetrics();
+		
+		density = displayMetrics.density;
+	}
+	
+    public int dp2px(int dp) {
+        if (dp == 0) {
+            return 0;
+        }
+        return (int) (dp * density + 0.5f);
+
+    }
 
 	/**
 	 * 生命周期
@@ -185,6 +201,7 @@ public class MapFragment extends Fragment implements
 		mBaiduMap = mMapView.getMap();
 		mUiSettings = mBaiduMap.getUiSettings();
 		mBaiduMap.setMyLocationEnabled(true);
+		initDensity();
 		initHandler();
 		initLocation();
 		initMapUtil();
@@ -201,7 +218,7 @@ public class MapFragment extends Fragment implements
 				SwipeMenuItem moreItem = new SwipeMenuItem(getActivity());
 				moreItem.setBackground(new ColorDrawable(Color.rgb(0xc9, 0xc9,
 						0xce)));
-				moreItem.setWidth(200);
+				moreItem.setWidth(dp2px(100));
 				moreItem.setTitle("详情");
 				moreItem.setTitleSize(18);
 				moreItem.setTitleColor(Color.WHITE);
@@ -210,7 +227,7 @@ public class MapFragment extends Fragment implements
 				SwipeMenuItem checkItem = new SwipeMenuItem(getActivity());
 				checkItem.setBackground(new ColorDrawable(Color.rgb(0x5f, 0xae,
 						0xe1)));
-				checkItem.setWidth(200);
+				checkItem.setWidth(dp2px(100));
 				checkItem.setTitle("查看景点");
 				checkItem.setTitleSize(18);
 				checkItem.setTitleColor(Color.WHITE);
@@ -549,7 +566,7 @@ public class MapFragment extends Fragment implements
 		MapStatusUpdate mapStatusUpdate = MapStatusUpdateFactory.newLatLngZoom(
 				latLng, zoom);
 		mBaiduMap.animateMapStatus(mapStatusUpdate);
-		OverlayOptions ooText = new TextOptions().fontSize(30)
+		OverlayOptions ooText = new TextOptions().fontSize((int) (15*density))
 				.fontColor(textColor).text(name).rotate(0).position(latLng);
 		mBaiduMap.addOverlay(ooText);
 	}
@@ -621,7 +638,7 @@ public class MapFragment extends Fragment implements
 		if (isOpen) {
 			closeResult();
 		}
-		mBaiduMap.setPadding(0, 0, 0, 100);
+		mBaiduMap.setPadding(0, 0, 0, dp2px(50));
 		String result = setResultTitle(switchId);
 		closeImageView.setVisibility(View.VISIBLE);
 		if (layout == null) {
@@ -634,7 +651,7 @@ public class MapFragment extends Fragment implements
 			MapViewLayoutParams.Builder builder = new MapViewLayoutParams.Builder();
 			builder.layoutMode(MapViewLayoutParams.ELayoutMode.absoluteMode);
 			builder.width(mMapView.getWidth());
-			builder.height(100);
+			builder.height(dp2px(50));
 			builder.point(new Point(0, mMapView.getHeight()));
 			builder.align(MapViewLayoutParams.ALIGN_LEFT,
 					MapViewLayoutParams.ALIGN_BOTTOM);
@@ -651,7 +668,7 @@ public class MapFragment extends Fragment implements
 		if (resultTextView == null) {
 			resultTextView = new TextView(getActivity());
 			resultTextView.setTextSize(18.0f);
-			resultTextView.setHeight(100);
+			resultTextView.setHeight(dp2px(50));
 			resultTextView.setGravity(Gravity.CENTER);
 			resultTextView.setTextColor(Color.WHITE);
 			resultTextView.setBackgroundColor(Color.parseColor("#AA24b69f"));
@@ -693,7 +710,7 @@ public class MapFragment extends Fragment implements
 		if (titleLayout == null) {
 			titleLayout = new RelativeLayout(getActivity());
 			RelativeLayout.LayoutParams textLayoutParams = new RelativeLayout.LayoutParams(
-					mMapView.getWidth(), 100);
+					mMapView.getWidth(), dp2px(50));
 			titleLayout.addView(resultTextView, textLayoutParams);
 			closeImageView = new ImageView(getActivity());
 //			closeImageView.setVisibility(View.VISIBLE);
@@ -719,7 +736,7 @@ public class MapFragment extends Fragment implements
 				}
 			});
 			RelativeLayout.LayoutParams imageLayoutParams = new RelativeLayout.LayoutParams(
-					70, 70);
+					dp2px(35), dp2px(35));
 			imageLayoutParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT,
 					RelativeLayout.TRUE);
 			imageLayoutParams.addRule(RelativeLayout.CENTER_VERTICAL,
@@ -874,13 +891,13 @@ public class MapFragment extends Fragment implements
 
 	public void closeResult() {
 		isOpen = false;
-		mBaiduMap.setPadding(0, 0, 0, 100);
+		mBaiduMap.setPadding(0, 0, 0, dp2px(50));
 		mMapView.removeView(layout);
 		layout.removeView(resultListView);
 		MapViewLayoutParams.Builder builder = new MapViewLayoutParams.Builder();
 		builder.layoutMode(MapViewLayoutParams.ELayoutMode.absoluteMode);
 		builder.width(mMapView.getWidth());
-		builder.height(100);
+		builder.height(dp2px(50));
 		builder.point(new Point(0, mMapView.getHeight()));
 		builder.align(MapViewLayoutParams.ALIGN_LEFT,
 				MapViewLayoutParams.ALIGN_BOTTOM);
@@ -889,7 +906,7 @@ public class MapFragment extends Fragment implements
 
 	public void openResult() {
 		isOpen = true;
-		mBaiduMap.setPadding(0, 0, 0, 550);
+		mBaiduMap.setPadding(0, 0, 0, dp2px(275));
 		mMapView.removeView(layout);
 		if (resultListView == null) {
 			resultListView = new SwipeMenuListView(getActivity());
@@ -906,7 +923,7 @@ public class MapFragment extends Fragment implements
 			resultAdapter = new MySwipListAdapter(resultList, getActivity());
 		}
 		if (resultListView.getParent() == null) {
-			layout.addView(resultListView, mMapView.getWidth(), 550 - 100);
+			layout.addView(resultListView, mMapView.getWidth(), dp2px(225));
 			resultListView.setAdapter(resultAdapter);
 			resultListView.setMenuCreator(creator);
 			resultListView
@@ -920,7 +937,7 @@ public class MapFragment extends Fragment implements
 		MapViewLayoutParams.Builder builder = new MapViewLayoutParams.Builder();
 		builder.layoutMode(MapViewLayoutParams.ELayoutMode.absoluteMode);
 		builder.width(mMapView.getWidth());
-		builder.height(550);
+		builder.height(dp2px(275));
 		builder.point(new Point(0, mMapView.getHeight()));
 		builder.align(MapViewLayoutParams.ALIGN_LEFT,
 				MapViewLayoutParams.ALIGN_BOTTOM);
@@ -1066,7 +1083,7 @@ public class MapFragment extends Fragment implements
 				}
 			});
 			RelativeLayout.LayoutParams imageLayoutParams = new RelativeLayout.LayoutParams(
-					70, 70);
+					dp2px(35), dp2px(35));
 			imageLayoutParams.addRule(RelativeLayout.ALIGN_PARENT_LEFT,
 					RelativeLayout.TRUE);
 			imageLayoutParams.addRule(RelativeLayout.CENTER_VERTICAL,
