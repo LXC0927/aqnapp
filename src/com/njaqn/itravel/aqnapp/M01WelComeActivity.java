@@ -27,7 +27,7 @@ public class M01WelComeActivity extends Activity {
 
 		setContentView(R.layout.m01_welcome);
 		imgWelcome = (ImageView) this.findViewById(R.id.imgWelcome);
-		imgWelcome.setImageResource(R.drawable.m01_welcome);
+		imgWelcome.setImageResource(R.drawable.welcome);
 		conf = new AppConf();
 
 		playWelcomeWord();
